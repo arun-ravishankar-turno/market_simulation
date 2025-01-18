@@ -6,6 +6,9 @@ authors = [
     {name = "arun-ravishankar-turno",email = "arun.ravishankar@turno.com"}
 ]
 readme = "README.md"
+packages = [
+    { include = "market_simulation" }
+]
 requires-python = ">=3.12"
 dependencies = [
     "pydantic (>=2.10.5,<3.0.0)",
