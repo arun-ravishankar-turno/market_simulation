@@ -49,3 +49,77 @@ class CleanerSchema(BaseModel):
 
     class Config:
         frozen = True
+
+class MarketSearchesSchema(BaseModel):
+    """Schema for market search volume data.
+    
+    Attributes:
+        market (str): Market identifier
+        projected_searches (int): Expected number of searches for next period
+        past_period_searches (int): Actual number of searches from last period
+    """
+    market: str = Field(..., description="Market identifier")
+    projected_searches: int = Field(..., ge=0, description="Projected number of searches")
+    past_period_searches: int = Field(..., ge=0, description="Past period actual searches")
+
+    class Config:
+        frozen = True
+
+class SimulationResultsSchema(BaseModel):
+    """Schema for simulation results and metrics.
+    
+    Contains both aggregate metrics and their distributions for comparing
+    simulation outputs with historical data.
+    """
+    # Market identifiers
+    market: str = Field(..., description="Market identifier")
+    searches: int = Field(..., ge=0)
+    number_of_cleaners: int = Field(..., ge=0)
+    number_of_active_cleaners: int = Field(..., ge=0)
+    total_str_tam: int = Field(..., ge=0)
+    
+    # Aggregate metrics
+    total_bids: int = Field(..., ge=0)
+    total_connections: int = Field(..., ge=0)
+    
+    # Average per-search metrics
+    avg_offers_per_search: float = Field(..., ge=0.0)
+    avg_bids_per_search: float = Field(..., ge=0.0)
+    avg_connections_per_search: float = Field(..., ge=0.0)
+    
+    # Percentiles for offers per search
+    offers_per_search_p25: float = Field(..., ge=0.0)
+    offers_per_search_p50: float = Field(..., ge=0.0)
+    offers_per_search_p75: float = Field(..., ge=0.0)
+    
+    # Conversion metrics
+    avg_bids_per_offer: float = Field(..., ge=0.0)
+    avg_connections_per_offer: float = Field(..., ge=0.0)
+    avg_connections_per_bid: float = Field(..., ge=0.0)
+    
+    # Active cleaner metrics
+    avg_active_cleaner_offers_per_search: float = Field(..., ge=0.0)
+    avg_active_cleaner_bids_per_search: float = Field(..., ge=0.0)
+    
+    # Distance metrics (in km)
+    avg_distance_offers_per_search: float = Field(..., ge=0.0)
+    avg_distance_bids_per_search: float = Field(..., ge=0.0)
+    avg_distance_connections_per_search: float = Field(..., ge=0.0)
+    
+    # Distance percentiles
+    distance_offers_p25: float = Field(..., ge=0.0)
+    distance_offers_p50: float = Field(..., ge=0.0)
+    distance_offers_p75: float = Field(..., ge=0.0)
+    
+    # Cleaner score metrics (0 to 1)
+    avg_cleaner_score_per_search: float = Field(..., ge=0.0, le=1.0)
+    avg_cleaner_score_of_bidders_per_search: float = Field(..., ge=0.0, le=1.0)
+    avg_cleaner_score_of_connection_per_search: float = Field(..., ge=0.0, le=1.0)
+    
+    # Cleaner score percentiles
+    cleaner_score_p25: float = Field(..., ge=0.0, le=1.0)
+    cleaner_score_p50: float = Field(..., ge=0.0, le=1.0)
+    cleaner_score_p75: float = Field(..., ge=0.0, le=1.0)
+
+    class Config:
+        frozen = True

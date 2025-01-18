@@ -82,3 +82,60 @@ def test_no_data_provided():
         loader.load_geo_mapping()
     with pytest.raises(ValueError):
         loader.load_cleaners()
+
+@pytest.fixture
+def valid_market_searches_data():
+    return pd.DataFrame({
+        'market': ['market1', 'market2'],
+        'projected_searches': [100, 150],
+        'past_period_searches': [90, 140]
+    })
+
+@pytest.fixture
+def valid_simulation_results_data():
+    return pd.DataFrame({
+        'market': ['market1'],
+        'searches': [100],
+        'number_of_cleaners': [50],
+        'number_of_active_cleaners': [40],
+        'total_str_tam': [1000],
+        'total_bids': [200],
+        'total_connections': [80],
+        'avg_offers_per_search': [5.0],
+        'avg_bids_per_search': [2.0],
+        'avg_connections_per_search': [0.8],
+        'offers_per_search_p25': [3.0],
+        'offers_per_search_p50': [5.0],
+        'offers_per_search_p75': [7.0],
+        'avg_bids_per_offer': [0.4],
+        'avg_connections_per_offer': [0.16],
+        'avg_connections_per_bid': [0.4],
+        'avg_active_cleaner_offers_per_search': [4.0],
+        'avg_active_cleaner_bids_per_search': [1.6],
+        'avg_distance_offers_per_search': [5.0],
+        'avg_distance_bids_per_search': [4.5],
+        'avg_distance_connections_per_search': [4.0],
+        'distance_offers_p25': [3.0],
+        'distance_offers_p50': [5.0],
+        'distance_offers_p75': [7.0],
+        'avg_cleaner_score_per_search': [0.8],
+        'avg_cleaner_score_of_bidders_per_search': [0.85],
+        'avg_cleaner_score_of_connection_per_search': [0.9],
+        'cleaner_score_p25': [0.7],
+        'cleaner_score_p50': [0.8],
+        'cleaner_score_p75': [0.9]
+    })
+
+def test_market_searches_validation_success(valid_market_searches_data):
+    loader = DataLoader()
+    validated_data = loader.load_market_searches(valid_market_searches_data)
+    assert len(validated_data) == 2
+    assert validated_data['market1'].projected_searches == 100
+    assert validated_data['market2'].past_period_searches == 140
+
+def test_simulation_results_validation_success(valid_simulation_results_data):
+    loader = DataLoader()
+    validated_data = loader.load_simulation_results(valid_simulation_results_data)
+    assert len(validated_data) == 1
+    assert validated_data['market1'].total_bids == 200
+    assert validated_data['market1'].avg_cleaner_score_per_search == 0.8
