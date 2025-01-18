@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict
 import pandas as pd
 
@@ -12,14 +12,13 @@ class GeoMappingSchema(BaseModel):
         longitude (float): Longitude of postal code centroid
         str_tam (int): Short term rental total addressable market count
     """
+    model_config = ConfigDict(frozen=True)
+
     postal_code: str = Field(..., description="Unique postal code identifier")
     market: str = Field(..., description="Market identifier")
     latitude: float = Field(..., ge=-90, le=90, description="Postal code centroid latitude")
     longitude: float = Field(..., ge=-180, le=180, description="Postal code centroid longitude")
     str_tam: int = Field(..., ge=0, description="Short term rental total addressable market")
-
-    class Config:
-        frozen = True
 
 class CleanerSchema(BaseModel):
     """Schema for validating cleaner data.
@@ -36,6 +35,8 @@ class CleanerSchema(BaseModel):
         active_connection_ratio (float): Ratio of active to total possible connections
         team_size (int): Number of team members
     """
+    model_config = ConfigDict(frozen=True)
+
     contractor_id: str = Field(..., description="Unique cleaner identifier")
     postal_code: str = Field(..., description="Postal code location")
     latitude: float = Field(..., ge=-90, le=90)
@@ -47,9 +48,6 @@ class CleanerSchema(BaseModel):
     active_connection_ratio: float = Field(..., ge=0, le=1)
     team_size: int = Field(..., gt=0)
 
-    class Config:
-        frozen = True
-
 class MarketSearchesSchema(BaseModel):
     """Schema for market search volume data.
     
@@ -58,12 +56,11 @@ class MarketSearchesSchema(BaseModel):
         projected_searches (int): Expected number of searches for next period
         past_period_searches (int): Actual number of searches from last period
     """
+    model_config = ConfigDict(frozen=True)
+
     market: str = Field(..., description="Market identifier")
     projected_searches: int = Field(..., ge=0, description="Projected number of searches")
     past_period_searches: int = Field(..., ge=0, description="Past period actual searches")
-
-    class Config:
-        frozen = True
 
 class SimulationResultsSchema(BaseModel):
     """Schema for simulation results and metrics.
@@ -71,6 +68,8 @@ class SimulationResultsSchema(BaseModel):
     Contains both aggregate metrics and their distributions for comparing
     simulation outputs with historical data.
     """
+    model_config = ConfigDict(frozen=True)
+
     # Market identifiers
     market: str = Field(..., description="Market identifier")
     searches: int = Field(..., ge=0)
@@ -120,6 +119,3 @@ class SimulationResultsSchema(BaseModel):
     cleaner_score_p25: float = Field(..., ge=0.0, le=1.0)
     cleaner_score_p50: float = Field(..., ge=0.0, le=1.0)
     cleaner_score_p75: float = Field(..., ge=0.0, le=1.0)
-
-    class Config:
-        frozen = True
