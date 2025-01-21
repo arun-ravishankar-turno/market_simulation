@@ -3,6 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 from market_simulation.models.geo import PostalCode
 from market_simulation.data.schemas import GeoMappingSchema, CleanerSchema
+from market_simulation.utils.geo_utils import calculate_haversine_distance
+
 
 @dataclass
 class Market:
@@ -42,6 +44,21 @@ class Market:
             if cleaner.postal_code in self.postal_codes
         }
     
+    def calculate_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """
+        Calculate the distance in kilometers between two points.
+        
+        Args:
+            lat1: Latitude of first point
+            lon1: Longitude of first point
+            lat2: Latitude of second point
+            lon2: Longitude of second point
+            
+        Returns:
+            float: Distance in kilometers
+        """
+        return calculate_haversine_distance(lat1, lon1, lat2, lon2)
+
     def get_postal_code_neighbors(self, postal_code: str, 
                                 threshold_km: float) -> List[PostalCode]:
         """
@@ -114,3 +131,21 @@ class Market:
         sampled_lon = np.random.normal(selected_pc.longitude, lon_std)
         
         return sampled_lat, sampled_lon, selected_pc.postal_code
+
+    def add_cleaner(self, cleaner: CleanerSchema) -> None:
+        """
+        Add a new cleaner to the market.
+        
+        Args:
+            cleaner: CleanerSchema instance representing the new cleaner
+            
+        Raises:
+            ValueError: If cleaner's postal code is not in this market
+        """
+        if cleaner.postal_code not in self.postal_codes:
+            raise ValueError(f"Cleaner postal code {cleaner.postal_code} not in market")
+            
+        if self.cleaners is None:
+            self.cleaners = {}
+        
+        self.cleaners[cleaner.contractor_id] = cleaner

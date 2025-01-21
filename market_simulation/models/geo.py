@@ -2,6 +2,7 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass
 import numpy as np
 from market_simulation.data.schemas import GeoMappingSchema
+from market_simulation.utils.geo_utils import calculate_haversine_distance
 
 @dataclass
 class PostalCode:
@@ -47,18 +48,10 @@ class PostalCode:
         Returns:
             float: Distance in kilometers
         """
-        R = 6371  # Earth's radius in kilometers
-        
-        lat1, lon1 = np.radians(self.latitude), np.radians(self.longitude)
-        lat2, lon2 = np.radians(other.latitude), np.radians(other.longitude)
-        
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        
-        a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
-        c = 2 * np.arcsin(np.sqrt(a))
-        
-        return R * c
+        return calculate_haversine_distance(
+            self.latitude, self.longitude,
+            other.latitude, other.longitude
+        )
     
     def find_neighbors(self, postal_codes: List['PostalCode'], 
                       threshold_km: float) -> List['PostalCode']:

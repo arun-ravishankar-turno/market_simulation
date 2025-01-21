@@ -80,3 +80,33 @@ def test_get_cleaners_without_initialization(sample_market):
 def test_invalid_postal_code_neighbors(sample_market):
     with pytest.raises(ValueError):
         sample_market.get_postal_code_neighbors("99999", 3.0)
+
+def test_add_cleaner(sample_market, sample_cleaners):
+    """Test adding a new cleaner to the market."""
+    cleaner = sample_cleaners['C1']
+    sample_market.add_cleaner(cleaner)
+    assert cleaner.contractor_id in sample_market.cleaners
+    assert len(sample_market.cleaners) == 1
+
+def test_add_cleaner_invalid_postal_code(sample_market):
+    """Test adding a cleaner with invalid postal code."""
+    invalid_cleaner = CleanerSchema(
+        contractor_id="C_invalid",
+        postal_code="99999",  # Invalid postal code
+        latitude=40.7505,
+        longitude=-73.9965,
+        active=True,
+        cleaner_score=0.8,
+        service_radius=10.0,
+        active_connections=5,
+        active_connection_ratio=0.5,
+        team_size=2
+    )
+    with pytest.raises(ValueError):
+        sample_market.add_cleaner(invalid_cleaner)
+
+def test_add_multiple_cleaners(sample_market, sample_cleaners):
+    """Test adding multiple cleaners to the market."""
+    for cleaner in sample_cleaners.values():
+        sample_market.add_cleaner(cleaner)
+    assert len(sample_market.cleaners) == len(sample_cleaners)
