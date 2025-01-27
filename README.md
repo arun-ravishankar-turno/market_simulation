@@ -23,8 +23,121 @@ cd market_simulation
 pip install -r requirements.txt
 ```
 
-## Project Structure
+## Quick Start
 
+Run a simulation using sample data:
+
+```bash
+# For postal code based market
+python run_simulation.py --type postal_code --market-id manhattan
+
+# For location based market
+python run_simulation.py --type location \
+    --market-id manhattan \
+    --center-lat 40.7505 \
+    --center-lon -73.9965 \
+    --market-radius 5.0
+```
+
+## Input Data Structure
+
+The system expects input data in the following directory structure:
+```
+market_simulation/
+├── data/
+│   └── sample_data/
+│       ├── cleaners.csv
+│       └── postal_codes.csv
+```
+
+### Data Formats
+
+#### postal_codes.csv
+```csv
+postal_code,market,latitude,longitude,str_tam,area
+10001,manhattan,40.7505,-73.9965,250,2.1
+10002,manhattan,40.7168,-73.9861,300,2.3
+```
+
+#### cleaners.csv
+```csv
+contractor_id,latitude,longitude,postal_code,bidding_active,assignment_active,cleaner_score,service_radius,team_size,active_connections
+C001,40.7505,-73.9965,10001,true,true,0.92,5.0,3,8
+C002,40.7168,-73.9861,10002,true,true,0.85,3.0,2,4
+```
+
+## Running Simulations
+
+### Command Line Options
+
+```bash
+python run_simulation.py [options]
+
+Required arguments:
+  --type {postal_code,location}   Type of market simulation
+  --market-id MARKET_ID          Identifier for the market
+
+Optional arguments:
+  --data-dir DATA_DIR           Custom data directory (defaults to sample_data)
+  --search-iterations N         Number of search iterations (default: 100)
+  --random-seed SEED           Random seed for reproducibility (default: 42)
+  --search-radius RADIUS       Search radius in kilometers (default: 10.0)
+
+Location-based required arguments:
+  --center-lat LAT             Market center latitude
+  --center-lon LON             Market center longitude
+  --market-radius RADIUS       Market radius in kilometers
+```
+
+### Simulation Output
+
+Each simulation creates a unique output directory with format:
+```
+simulation_results/
+└── {type}_{simulation_id}_{timestamp}/
+    ├── simulation_config.json    # Complete configuration
+    ├── market_map.html          # Interactive visualization
+    ├── distance_distributions.png
+    ├── score_distributions.png
+    ├── market_summary.png
+    ├── search_results.csv       # Detailed results
+    └── summary_stats.json       # Aggregated metrics
+```
+
+### Configuration File
+Each simulation saves its configuration in `simulation_config.json`, containing:
+- Simulation parameters
+- Market configuration
+- Random seeds
+- Input data paths
+
+This allows exact reproduction of simulations by loading the saved configuration.
+
+## Key Metrics
+
+The simulation tracks several key metrics:
+- Connection Rate: Successful connections / total searches
+- Coverage Ratio: Areas with cleaners / total market area
+- Search Density: Searches per unit area
+- Distance Distributions: Spatial patterns of connections
+- Score Distributions: Quality metrics of matches
+
+## Visualization
+
+The system provides several visualization tools:
+- Interactive maps showing:
+  - Cleaner locations and service areas
+  - Search points
+  - Connection points
+  - Market boundaries
+- Distribution plots:
+  - Distance distributions
+  - Score distributions
+  - Market summary metrics
+
+## Development
+
+### Project Structure
 ```
 market_simulation/
 ├── models/                 # Core domain models
@@ -37,125 +150,25 @@ market_simulation/
 │   ├── results.py        # Results data structures
 │   ├── runner.py         # Simulation orchestration
 │   └── simulator.py      # Core simulation engine
-├── visualization/         # Visualization tools
-│   └── visualizer.py     # Results visualization
-└── tests/                # Test suite
+├── data/                 # Data handling
+│   ├── data_loader.py    # Data loading and validation
+│   ├── schemas.py        # Data schemas
+│   └── sample_data/      # Sample input data
+└── visualization/        # Visualization tools
+    └── visualizer.py     # Results visualization
 ```
 
-## Usage
+### Running Tests
 
-### Basic Simulation
-
-1. Prepare your input data files:
-   - `postal_codes.csv`: Market geography definition
-   - `cleaners.csv`: Cleaner data
-
-2. Run a simulation:
-
-```python
-from market_simulation.simulation.config import SimulationConfig
-from market_simulation.simulation.runner import SimulationRunner
-
-# Configure simulation
-config = SimulationConfig(
-    search_iterations=100,
-    random_seed=42,
-    search_radius_km=10.0
-)
-
-# Run simulation
-runner = SimulationRunner(config=config)
-results = runner.run_complete_simulation(market)
-```
-
-### Input Data Formats
-
-#### postal_codes.csv
-```csv
-postal_code,market,latitude,longitude,str_tam
-10001,manhattan,40.7505,-73.9965,250
-10002,manhattan,40.7168,-73.9861,300
-```
-
-#### cleaners.csv
-```csv
-contractor_id,latitude,longitude,postal_code,bidding_active,assignment_active,cleaner_score,service_radius,team_size,active_connections
-C001,40.7505,-73.9965,10001,true,true,0.92,5.0,3,8
-C002,40.7168,-73.9861,10002,true,true,0.85,3.0,2,4
-```
-
-### Output Files
-
-The simulation generates several output files in the specified output directory:
-- `market_map.html`: Interactive map visualization
-- `distance_distributions.png`: Distance analysis plots
-- `score_distributions.png`: Score distribution plots
-- `market_summary.png`: Key metrics summary
-- `search_results.csv`: Detailed simulation results
-- `summary_stats.json`: Aggregated statistics
-
-## Market Types
-
-The system supports two types of market definitions:
-
-### Postal Code Based Markets
-```python
-market = runner.setup_postal_code_market(
-    market_id="manhattan",
-    postal_codes=postal_codes,
-    cleaners=cleaners
-)
-```
-
-### Location Based Markets
-```python
-market = runner.setup_location_market(
-    market_id="manhattan",
-    center_lat=40.7505,
-    center_lon=-73.9965,
-    radius_km=5.0,
-    cleaners=cleaners
-)
-```
-
-## Configuration Options
-
-Key simulation parameters that can be configured:
-
-```python
-config = SimulationConfig(
-    search_iterations=100,           # Number of searches to simulate
-    supply_configuration_iterations=1,
-    random_seed=42,                  # For reproducibility
-    cleaner_base_bid_probability=0.14,
-    connection_base_probability=0.4,
-    distance_decay_factor=0.2,
-    search_radius_km=10.0
-)
-```
-
-## Key Metrics
-
-The simulation tracks several key metrics:
-- Connection Rate: Successful connections / total searches
-- Coverage Ratio: Areas with cleaners / total areas
-- Search Density: Searches per unit area
-- Distance Distributions: Spatial patterns of connections
-- Score Distributions: Quality metrics of matches
-
-## Visualization
-
-The system provides several visualization tools:
-- Interactive maps showing cleaner locations and service areas
-- Distance distribution plots
-- Score distribution plots
-- Market summary visualizations
-
-## Testing
-
-Run the test suite:
 ```bash
-pytest tests/
+# Run all tests
+pytest
+
+# Run specific test file
+pytest tests/test_models/test_market.py
+
+# Run with coverage
+pytest --cov=market_simulation
 ```
 
 ## Contributing

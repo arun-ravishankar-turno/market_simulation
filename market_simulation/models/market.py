@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Union
 import numpy as np
 from market_simulation.models.geo import PostalCode, GeoLocation
 from market_simulation.models.cleaner import Cleaner
+from market_simulation.data.schemas import CleanerSchema, MarketSearchesSchema
 from market_simulation.utils.geo_utils import calculate_haversine_distance
 
 @dataclass
@@ -74,7 +75,15 @@ class Market:
             raise ValueError("TAM only available for postal code-based markets")
         return sum(pc.str_tam for pc in self.postal_codes.values())
 
-    def add_cleaner(self, cleaner: Cleaner) -> None:
+    @property
+    def total_area(self) -> float:
+        """Calculate total market area in square kilometers."""
+        if self.postal_codes is not None:
+            return sum(pc.area for pc in self.postal_codes.values() if pc.area is not None)
+        else:
+            return np.pi * (self.radius_km ** 2)
+
+    def add_cleaner(self, cleaner_data: Union[Cleaner, CleanerSchema]) -> None:
         """
         Add a cleaner to the market.
         
@@ -82,11 +91,30 @@ class Market:
         For location-based markets, validates location within radius.
         
         Args:
-            cleaner: Cleaner instance to add
+            cleaner_data: Cleaner instance or schema to add
             
         Raises:
             ValueError: If cleaner location invalid for market type
         """
+        # Convert schema to model if needed
+        if isinstance(cleaner_data, CleanerSchema):
+            cleaner = Cleaner(
+                contractor_id=cleaner_data.contractor_id,
+                latitude=cleaner_data.latitude,
+                longitude=cleaner_data.longitude,
+                postal_code=cleaner_data.postal_code,
+                bidding_active=cleaner_data.bidding_active,
+                assignment_active=cleaner_data.assignment_active,
+                cleaner_score=cleaner_data.cleaner_score,
+                service_radius=cleaner_data.service_radius,
+                team_size=cleaner_data.team_size,
+                active_connections=cleaner_data.active_connections,
+                active_connection_ratio=cleaner_data.active_connection_ratio
+            )
+        else:
+            cleaner = cleaner_data
+
+        # Validate location
         if self.postal_codes is not None:
             if cleaner.postal_code not in self.postal_codes:
                 raise ValueError(

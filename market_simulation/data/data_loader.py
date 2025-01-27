@@ -38,12 +38,16 @@ class DataLoader:
         if data is None:
             if self.data_directory is None:
                 raise ValueError("Must provide either data or data_directory")
-            data = pd.read_csv(self.data_directory / "geo_mapping.csv")
-            
+            data = pd.read_csv(self.data_directory / "postal_codes.csv")
+        
         validated_data = {}
         for _, row in data.iterrows():
-            validated_data[row['postal_code']] = GeoMappingSchema(**row.to_dict())
+            # Ensure postal_code is string
+            row_dict = row.to_dict()
+            row_dict['postal_code'] = str(row_dict['postal_code'])
             
+            validated_data[row_dict['postal_code']] = GeoMappingSchema(**row_dict)
+        
         return validated_data
     
     def load_cleaners(self, data: pd.DataFrame = None) -> Dict[str, CleanerSchema]:
@@ -65,11 +69,28 @@ class DataLoader:
             if self.data_directory is None:
                 raise ValueError("Must provide either data or data_directory")
             data = pd.read_csv(self.data_directory / "cleaners.csv")
-            
+        
         validated_data = {}
         for _, row in data.iterrows():
-            validated_data[row['contractor_id']] = CleanerSchema(**row.to_dict())
+            # Convert row to dictionary and handle type conversions
+            row_dict = row.to_dict()
             
+            # Ensure postal_code is string
+            row_dict['postal_code'] = str(row_dict['postal_code'])
+            
+            # Convert string boolean values if necessary
+            for bool_field in ['bidding_active', 'assignment_active']:
+                if isinstance(row_dict.get(bool_field), str):
+                    row_dict[bool_field] = row_dict[bool_field].lower() == 'true'
+            
+            # Calculate active_connection_ratio if not provided
+            if 'active_connection_ratio' not in row_dict and 'team_size' in row_dict:
+                max_connections = row_dict['team_size'] * 10  # Assuming 10 connections per team member
+                row_dict['active_connection_ratio'] = row_dict.get('active_connections', 0) / max_connections
+            
+            # Create validated cleaner
+            validated_data[row_dict['contractor_id']] = CleanerSchema(**row_dict)
+        
         return validated_data
 
     def load_market_searches(self, data: pd.DataFrame = None) -> Dict[str, MarketSearchesSchema]:
