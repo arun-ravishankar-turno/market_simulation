@@ -21,7 +21,8 @@ def valid_cleaner_data():
         'postal_code': ['12345', '67890'],
         'latitude': [40.7128, 34.0522],
         'longitude': [-74.0060, -118.2437],
-        'active': [True, False],
+        'bidding_active': [True, False],
+        'assignment_active': [True, False],
         'cleaner_score': [0.8, 0.9],
         'service_radius': [10.0, 15.0],
         'active_connections': [5, 3],
@@ -56,7 +57,7 @@ def test_cleaners_validation_success(valid_cleaner_data):
     loader = DataLoader()
     validated_data = loader.load_cleaners(valid_cleaner_data)
     assert len(validated_data) == 2
-    assert validated_data['C1'].active == True
+    assert validated_data['C1'].bidding_active == True
     assert validated_data['C2'].team_size == 3
 
 def test_cleaners_validation_failure():
@@ -65,7 +66,8 @@ def test_cleaners_validation_failure():
         'postal_code': ['12345'],
         'latitude': [40.7128],
         'longitude': [-74.0060],
-        'active': [True],
+        'bidding_active': [True],
+        'assignment_active': [True],
         'cleaner_score': [1.5],  # Invalid score > 1
         'service_radius': [10.0],
         'active_connections': [5],
