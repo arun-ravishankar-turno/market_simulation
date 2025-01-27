@@ -47,6 +47,7 @@ class GeographicMetrics:
             
         # For postal code markets
         if market.postal_codes:
+            # ----------------------------THIS SHOULD BE ACTUAL AREA OF POSTAL CODES---------------------------
             total_areas = len(market.postal_codes)
             metrics['search_density'] = len(self.search_points) / total_areas
             metrics['connection_density'] = len(self.connection_points) / total_areas
@@ -83,7 +84,7 @@ class GeographicMetrics:
                     if c.bidding_active
                 ])
                 metrics['avg_service_radius'] = avg_service_radius
-        
+        ## REMOVE THIS
         # Common metrics for both market types
         if self.search_points and self.connection_points:
             metrics['connection_ratio'] = len(self.connection_points) / len(self.search_points)

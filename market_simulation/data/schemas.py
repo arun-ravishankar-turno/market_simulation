@@ -19,6 +19,7 @@ class GeoMappingSchema(BaseModel):
     latitude: float = Field(..., ge=-90, le=90, description="Postal code centroid latitude")
     longitude: float = Field(..., ge=-180, le=180, description="Postal code centroid longitude")
     str_tam: int = Field(..., ge=0, description="Short term rental total addressable market")
+    area: Optional[float] = Field(None, ge=0.01, description="Area of the Postal Code in square kilometers")
 
 class CleanerSchema(BaseModel):
     """Schema for validating cleaner data.

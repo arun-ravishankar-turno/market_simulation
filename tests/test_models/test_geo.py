@@ -189,3 +189,40 @@ def test_distance_calculations_consistency(sample_postal_codes):
     dist1 = pc1.calculate_distance_to(pc2)
     dist2 = pc2.calculate_distance_to(pc1)
     assert float(dist1) == float(dist2)
+
+def test_postal_code_with_area():
+    """Test postal code creation with area."""
+    pc = PostalCode(
+        postal_code="10001",
+        market="manhattan",
+        latitude=40.7505,
+        longitude=-73.9965,
+        str_tam=100,
+        area=2.5  # Area in square kilometers
+    )
+    assert pc.area == 2.5
+    assert isinstance(pc.area, float)
+
+def test_postal_code_without_area():
+    """Test postal code creation without area."""
+    pc = PostalCode(
+        postal_code="10001",
+        market="manhattan",
+        latitude=40.7505,
+        longitude=-73.9965,
+        str_tam=100
+    )
+    assert pc.area is None
+
+def test_postal_code_from_schema():
+    """Test creating postal code from schema with area."""
+    schema = GeoMappingSchema(
+        postal_code="10001",
+        market="manhattan",
+        latitude=40.7505,
+        longitude=-73.9965,
+        str_tam=100,
+        area=2.5
+    )
+    pc = PostalCode.from_schema(schema)
+    assert pc.area == 2.5

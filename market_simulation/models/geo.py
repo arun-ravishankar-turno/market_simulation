@@ -56,6 +56,7 @@ class PostalCode(GeoLocation):
     postal_code: str
     market: str
     str_tam: int
+    area: Optional[float] = None
     latitude: float = field(init=True)  # override from parent
     longitude: float = field(init=True)  # override from parent
 
@@ -75,7 +76,8 @@ class PostalCode(GeoLocation):
             market=schema.market,
             latitude=schema.latitude,
             longitude=schema.longitude,
-            str_tam=schema.str_tam
+            str_tam=schema.str_tam,
+            area=schema.area
         )
     
     def calculate_distance_to(self, other: GeoLocation) -> float:

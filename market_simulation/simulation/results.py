@@ -9,7 +9,6 @@ class Offer:
     contractor_id: str
     distance: float
     cleaner_score: float
-    # SHOULD THIS BE ACTIVE ANYMORE?
     active: bool
     team_size: int
     active_connections: int
