@@ -1,0 +1,23 @@
+{
+  "connection_rate": 0.14,
+  "avg_bids_per_search": 0.7,
+  "med_bids_per_search": 1.0,
+  "pct_searches_with_bids": 0.55,
+  "avg_offer_distance": 2.83784260225606,
+  "med_offer_distance": 2.6212041808742823,
+  "avg_bid_distance": 2.4084352902872816,
+  "med_bid_distance": 2.27737747919603,
+  "avg_connection_distance": 1.8429018842027722,
+  "med_connection_distance": 1.6249874181864232,
+  "avg_offer_score": 0.8426666666666667,
+  "med_offer_score": 0.87,
+  "avg_bid_score": 0.8758571428571427,
+  "med_bid_score": 0.88,
+  "avg_connection_score": 0.8692857142857143,
+  "med_connection_score": 0.875,
+  "search_density": 6.666666666666667,
+  "connection_density": 0.9333333333333333,
+  "coverage_ratio": 1.0,
+  "active_coverage_ratio": 0.8,
+  "connection_ratio": 0.14
+}
