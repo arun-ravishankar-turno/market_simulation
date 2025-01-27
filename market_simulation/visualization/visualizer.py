@@ -58,6 +58,8 @@ class MarketVisualizer:
                 color='blue' if cleaner.bidding_active else 'gray',
                 fill=True,
                 opacity=0.2,
+                fill_opacity=0.05,
+                weight=0.05,
                 popup=f"Cleaner {cleaner.contractor_id}<br>"
                     f"Score: {cleaner.cleaner_score:.2f}<br>"
                     f"Team Size: {cleaner.team_size}<br>"
