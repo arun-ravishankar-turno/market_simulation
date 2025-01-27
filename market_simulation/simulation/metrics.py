@@ -33,8 +33,9 @@ class GeographicMetrics:
         Calculate geographic coverage metrics.
         
         For postal code markets:
-        - Density is calculated per postal code
-        - Coverage is based on cleaner postal codes
+        - Density is calculated per total market area
+        - Coverage is based on cleaner service areas, considering overlaps
+        - Active coverage considers only active cleaners
         
         For location-based markets:
         - Density is calculated per unit area
@@ -45,49 +46,87 @@ class GeographicMetrics:
         if not self.search_points:
             return metrics
             
+        total_area = market.total_area
+        if total_area  <= 0:
+            return {
+                'search_density': 0.0,
+                'connection_density': 0.0,
+                'coverage_ratio': 0.0,
+                'active_coverage_ratio': 0.0
+            }
+            
+        metrics['search_density'] = len(self.search_points) / total_area
+        metrics['connection_density'] = len(self.connection_points) / total_area
+        
         # For postal code markets
         if market.postal_codes:
-            # ----------------------------THIS SHOULD BE ACTUAL AREA OF POSTAL CODES---------------------------
-            total_areas = len(market.postal_codes)
-            metrics['search_density'] = len(self.search_points) / total_areas
-            metrics['connection_density'] = len(self.connection_points) / total_areas
+            # Create a mapping of postal codes to their cleaners
+            pc_cleaners = defaultdict(list)
+            for cleaner in market.cleaners.values():
+                if cleaner.postal_code:
+                    pc_cleaners[cleaner.postal_code].append(cleaner)
             
-            # Calculate coverage ratio (areas with cleaners / total areas)
-            covered_areas = sum(1 for pc in market.postal_codes if any(
-                c.postal_code == pc for c in market.cleaners.values()
-            ))
-            metrics['coverage_ratio'] = covered_areas / total_areas
+            # Calculate covered area
+            covered_area = 0.0
+            active_covered_area = 0.0
             
-            # Add additional granular metrics
-            active_postal_codes = {c.postal_code for c in market.cleaners.values() 
-                                 if c.bidding_active}
-            metrics['active_coverage_ratio'] = len(active_postal_codes) / total_areas
-            
+            for postal_code, pc_data in market.postal_codes.items():
+                if postal_code in pc_cleaners:
+                    # Get cleaners in this postal code
+                    cleaners = pc_cleaners[postal_code]
+                    if cleaners:
+                        # Calculate maximum service coverage in this postal code
+                        pc_area = pc_data.area if pc_data.area is not None else 0
+                        
+                        # Consider service radius overlap
+                        max_radius = max(c.service_radius for c in cleaners)
+                        pc_covered_area = min(
+                            np.pi * (max_radius ** 2),  # Maximum possible coverage
+                            pc_area  # Limited by postal code area
+                        )
+                        covered_area += pc_covered_area
+                        
+                        # Calculate active coverage
+                        active_cleaners = [c for c in cleaners if c.bidding_active]
+                        if active_cleaners:
+                            max_active_radius = max(c.service_radius for c in active_cleaners)
+                            pc_active_covered = min(
+                                np.pi * (max_active_radius ** 2),
+                                pc_area
+                            )
+                            active_covered_area += pc_active_covered
+        
         # For location-based markets
         else:
-            if market.radius_km:
-                area = np.pi * (market.radius_km ** 2)  # approximate area in km²
-                metrics['search_density'] = len(self.search_points) / area
-                metrics['connection_density'] = len(self.connection_points) / area
-                
-                # Calculate coverage based on service areas
-                covered_area = sum(
-                    np.pi * (c.service_radius ** 2)
-                    for c in market.cleaners.values()
-                    if c.bidding_active
+            total_area = np.pi * (market.radius_km ** 2)
+            
+            # Calculate total coverage considering overlaps
+            # Note: This is a simplification; actual overlap calculation would be more complex
+            max_radius = max((c.service_radius for c in market.cleaners.values()), default=0)
+            covered_area = min(
+                np.pi * (max_radius ** 2) * len(market.cleaners),
+                total_area
+            )
+            
+            # Calculate active coverage
+            active_cleaners = [c for c in market.cleaners.values() if c.bidding_active]
+            if active_cleaners:
+                max_active_radius = max(c.service_radius for c in active_cleaners)
+                active_covered_area = min(
+                    np.pi * (max_active_radius ** 2) * len(active_cleaners),
+                    total_area
                 )
-                metrics['coverage_ratio'] = min(1.0, covered_area / area)
-                
-                # Add radius-based metrics
-                avg_service_radius = np.mean([
-                    c.service_radius for c in market.cleaners.values()
-                    if c.bidding_active
-                ])
-                metrics['avg_service_radius'] = avg_service_radius
-        ## REMOVE THIS
-        # Common metrics for both market types
-        if self.search_points and self.connection_points:
-            metrics['connection_ratio'] = len(self.connection_points) / len(self.search_points)
+            else:
+                active_covered_area = 0.0
+        
+        # Calculate final ratios
+        metrics['coverage_ratio'] = covered_area / total_area
+        metrics['active_coverage_ratio'] = active_covered_area / total_area
+        
+        # Add average service radius for active cleaners
+        active_cleaners = [c for c in market.cleaners.values() if c.bidding_active]
+        if active_cleaners:
+            metrics['avg_service_radius'] = np.mean([c.service_radius for c in active_cleaners])
         
         return metrics
 

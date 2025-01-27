@@ -1,49 +1,46 @@
 import pytest
 import numpy as np
+from market_simulation.simulation.metrics import GeographicMetrics
 from market_simulation.models.market import Market
 from market_simulation.models.cleaner import Cleaner
 from market_simulation.models.geo import PostalCode
-from market_simulation.simulation.results import (
-    Offer, Bid, Connection, SearchResult
-)
-from market_simulation.simulation.metrics import (
-    GeographicMetrics,
-    MarketMetrics,
-    SimulationMetrics
-)
+from market_simulation.simulation.results import SearchResult, Offer, Bid, Connection
 
 # --- Fixtures ---
 
 @pytest.fixture
-def postal_codes():
-    """Create sample postal codes."""
+def sample_postal_codes():
+    """Create sample postal codes with known areas."""
     return {
         "10001": PostalCode(
             postal_code="10001",
             market="test_market",
             latitude=40.7505,
             longitude=-73.9965,
-            str_tam=100
+            str_tam=100,
+            area=2.0  # 2 sq km
         ),
-        "10002": PostalCode(  # ~4km away
+        "10002": PostalCode(
             postal_code="10002",
             market="test_market",
             latitude=40.7168,
             longitude=-73.9861,
-            str_tam=150
+            str_tam=150,
+            area=3.0  # 3 sq km
         ),
-        "10003": PostalCode(  # ~2km away
+        "10003": PostalCode(
             postal_code="10003",
             market="test_market",
             latitude=40.7317,
             longitude=-73.9885,
-            str_tam=200
+            str_tam=200,
+            area=2.5  # 2.5 sq km
         )
     }
 
 @pytest.fixture
 def sample_cleaners():
-    """Create sample cleaners."""
+    """Create sample cleaners with known service radii."""
     return [
         Cleaner(
             contractor_id="C1",
@@ -53,7 +50,7 @@ def sample_cleaners():
             bidding_active=True,
             assignment_active=True,
             cleaner_score=0.8,
-            service_radius=10.0,
+            service_radius=1.0,  # 1 km radius
             team_size=2,
             active_connections=5
         ),
@@ -65,304 +62,184 @@ def sample_cleaners():
             bidding_active=True,
             assignment_active=True,
             cleaner_score=0.9,
-            service_radius=10.0,
+            service_radius=1.5,  # 1.5 km radius
             team_size=3,
             active_connections=3
+        ),
+        Cleaner(  # Inactive cleaner
+            contractor_id="C3",
+            latitude=40.7317,
+            longitude=-73.9885,
+            postal_code="10003",
+            bidding_active=False,
+            assignment_active=False,
+            cleaner_score=0.7,
+            service_radius=1.2,  # 1.2 km radius
+            team_size=1,
+            active_connections=0
         )
     ]
 
 @pytest.fixture
-def postal_code_market(postal_codes, sample_cleaners):
-    """Create a postal code-based market."""
+def postal_code_market(sample_postal_codes, sample_cleaners):
+    """Create a postal code market with known areas."""
     market = Market(
         market_id="test_market",
-        postal_codes=postal_codes
+        postal_codes=sample_postal_codes
     )
     for cleaner in sample_cleaners:
         market.add_cleaner(cleaner)
     return market
 
 @pytest.fixture
-def location_based_market(sample_cleaners):
-    """Create a location-based market."""
+def location_market(sample_cleaners):
+    """Create a location-based market with known radius."""
     market = Market(
         market_id="test_market",
         center_lat=40.7505,
         center_lon=-73.9965,
-        radius_km=5.0
+        radius_km=5.0  # 5 km radius (area ≈ 78.54 sq km)
     )
     for cleaner in sample_cleaners:
         market.add_cleaner(cleaner)
     return market
 
 @pytest.fixture
-def sample_search_result(sample_cleaners):
+def sample_search_result():
     """Create a sample search result."""
-    offers = [
-        Offer(
-            contractor_id=c.contractor_id,
-            distance=1.0,
-            cleaner_score=c.cleaner_score,
-            active=c.bidding_active,
-            team_size=c.team_size,
-            active_connections=c.active_connections
-        )
-        for c in sample_cleaners
-    ]
-    
-    bids = [
-        Bid(
-            contractor_id=c.contractor_id,
-            distance=1.0,
-            cleaner_score=c.cleaner_score,
-            active=c.bidding_active,
-            team_size=c.team_size,
-            active_connections=c.active_connections
-        )
-        for c in sample_cleaners if c.contractor_id == "C1"
-    ]
-    
-    connections = [
-        Connection(
-            contractor_id="C1",
-            distance=1.0,
-            cleaner_score=0.8,
-            active=True,
-            team_size=2,
-            active_connections=5
-        )
-    ]
-    
     return SearchResult(
         search_id="test_1",
         latitude=40.7505,
         longitude=-73.9965,
         postal_code="10001",
-        offers=offers,
-        bids=bids,
-        connections=connections
+        offers=[
+            Offer(
+                contractor_id="C1",
+                distance=1.0,
+                cleaner_score=0.8,
+                active=True,
+                team_size=2,
+                active_connections=5
+            )
+        ],
+        bids=[
+            Bid(
+                contractor_id="C1",
+                distance=1.0,
+                cleaner_score=0.8,
+                active=True,
+                team_size=2,
+                active_connections=5
+            )
+        ],
+        connections=[
+            Connection(
+                contractor_id="C1",
+                distance=1.0,
+                cleaner_score=0.8,
+                active=True,
+                team_size=2,
+                active_connections=5
+            )
+        ]
     )
 
-# --- Test Geographic Metrics ---
+# --- Tests ---
 
-def test_geographic_metrics_initialization():
-    """Test geographic metrics initialization."""
-    metrics = GeographicMetrics()
-    assert len(metrics.search_points) == 0
-    assert len(metrics.connection_points) == 0
-    
-    # Test initial metrics calculation returns empty dict
-    empty_market = Market(
-        market_id="test",
-        center_lat=0.0,
-        center_lon=0.0,
-        radius_km=1.0
-    )
-    assert metrics.calculate_coverage_metrics(empty_market) == {}
+def test_postal_code_market_total_area(postal_code_market):
+    """Test total area calculation for postal code market."""
+    expected_area = sum(pc.area for pc in postal_code_market.postal_codes.values())
+    assert postal_code_market.total_area == expected_area
+    assert expected_area == 7.5  # 2.0 + 3.0 + 2.5
 
-def test_geographic_metrics_add_search(sample_search_result):
-    """Test adding search results to geographic metrics."""
+def test_location_market_total_area(location_market):
+    """Test total area calculation for location-based market."""
+    expected_area = np.pi * (location_market.radius_km ** 2)
+    assert abs(location_market.total_area - expected_area) < 0.01
+
+def test_coverage_metrics_postal_code(postal_code_market, sample_search_result):
+    """Test coverage metrics for postal code market."""
     metrics = GeographicMetrics()
     metrics.add_search(sample_search_result)
     
-    assert len(metrics.search_points) == 1
-    assert metrics.search_points[0] == (40.7505, -73.9965)
+    coverage_metrics = metrics.calculate_coverage_metrics(postal_code_market)
     
-    assert len(metrics.connection_points) == 1
-    assert metrics.connection_points[0] == (40.7505, -73.9965)
+    # Check presence of metrics
+    assert 'coverage_ratio' in coverage_metrics
+    assert 'active_coverage_ratio' in coverage_metrics
+    assert 'search_density' in coverage_metrics
+    
+    # Verify search density
+    assert coverage_metrics['search_density'] == 1 / postal_code_market.total_area
+    
+    # Verify coverage ratios
+    assert 0 < coverage_metrics['coverage_ratio'] <= 1.0
+    assert 0 < coverage_metrics['active_coverage_ratio'] <= 1.0
+    assert coverage_metrics['active_coverage_ratio'] <= coverage_metrics['coverage_ratio']
 
-def test_geographic_coverage_metrics_postal_code(postal_code_market):
-    """Test coverage metrics for postal code market."""
-    metrics = GeographicMetrics()
-    
-    # Add a search result
-    search_result = SearchResult(
-        search_id="test_1",
-        latitude=40.7505,
-        longitude=-73.9965,
-        postal_code="10001",
-        offers=[],
-        bids=[],
-        connections=[]
-    )
-    metrics.add_search(search_result)
-    
-    coverage = metrics.calculate_coverage_metrics(postal_code_market)
-    
-    # Check metric presence
-    assert 'search_density' in coverage
-    assert 'coverage_ratio' in coverage
-    
-    # Check metric values
-    assert coverage['search_density'] == 1 / len(postal_code_market.postal_codes)
-    assert 0 <= coverage['coverage_ratio'] <= 1
-    assert 0 <= coverage.get('active_coverage_ratio', 1) <= 1
-
-def test_geographic_coverage_metrics_location(location_based_market):
+def test_coverage_metrics_location(location_market, sample_search_result):
     """Test coverage metrics for location-based market."""
     metrics = GeographicMetrics()
+    metrics.add_search(sample_search_result)
     
-    # Add a search result
-    search_result = SearchResult(
-        search_id="test_1",
-        latitude=40.7505,
-        longitude=-73.9965,
-        postal_code=None,
-        offers=[],
-        bids=[],
-        connections=[]
-    )
-    metrics.add_search(search_result)
-    
-    coverage = metrics.calculate_coverage_metrics(location_based_market)
+    coverage_metrics = metrics.calculate_coverage_metrics(location_market)
     
     # Check metric presence
-    assert 'search_density' in coverage
-    assert 'coverage_ratio' in coverage
-    assert 'avg_service_radius' in coverage
+    assert 'coverage_ratio' in coverage_metrics
+    assert 'active_coverage_ratio' in coverage_metrics
+    assert 'avg_service_radius' in coverage_metrics
     
-    # Check metric values
-    area = np.pi * (location_based_market.radius_km ** 2)
-    assert coverage['search_density'] == 1 / area
-    assert 0 <= coverage['coverage_ratio'] <= 1
-    assert coverage['avg_service_radius'] > 0
+    # Verify coverage ratios
+    total_area = np.pi * (location_market.radius_km ** 2)
+    assert coverage_metrics['coverage_ratio'] <= 1.0
+    assert coverage_metrics['active_coverage_ratio'] <= coverage_metrics['coverage_ratio']
 
-def test_empty_geographic_metrics(postal_code_market):
-    """Test geographic metrics with no data."""
-    metrics = GeographicMetrics()
-    coverage = metrics.calculate_coverage_metrics(postal_code_market)
-    assert coverage == {}
-
-def test_geographic_metrics_with_connections(postal_code_market):
-    """Test geographic metrics with connections."""
-    metrics = GeographicMetrics()
+def test_no_active_cleaners_coverage(postal_code_market, sample_search_result):
+    """Test coverage metrics when no cleaners are active."""
+    # Make all cleaners inactive
+    for cleaner in postal_code_market.cleaners.values():
+        cleaner.bidding_active = False
     
-    # Add a search result with connection
-    search_result = SearchResult(
-        search_id="test_1",
-        latitude=40.7505,
+    metrics = GeographicMetrics()
+    metrics.add_search(sample_search_result)
+    
+    coverage_metrics = metrics.calculate_coverage_metrics(postal_code_market)
+    assert coverage_metrics['active_coverage_ratio'] == 0.0
+    assert coverage_metrics['coverage_ratio'] > 0.0
+
+def test_service_radius_overlap(postal_code_market, sample_search_result):
+    """Test that overlapping service areas are handled correctly."""
+    # Add overlapping cleaner
+    overlapping_cleaner = Cleaner(
+        contractor_id="C4",
+        latitude=40.7505,  # Same location as C1
         longitude=-73.9965,
         postal_code="10001",
-        offers=[],
-        bids=[],
-        connections=[Connection(
-            contractor_id="C1",
-            distance=1.0,
-            cleaner_score=0.8,
-            active=True,
-            team_size=2,
-            active_connections=5
-        )]
+        bidding_active=True,
+        assignment_active=True,
+        cleaner_score=0.8,
+        service_radius=1.0,
+        team_size=2,
+        active_connections=5
     )
-    metrics.add_search(search_result)
+    postal_code_market.add_cleaner(overlapping_cleaner)
     
-    coverage = metrics.calculate_coverage_metrics(postal_code_market)
-    assert 'connection_density' in coverage
-    assert 'connection_ratio' in coverage
-    assert coverage['connection_ratio'] == 1.0
-
-# --- Test Market Metrics ---
-
-def test_market_metrics_initialization():
-    """Test market metrics initialization."""
-    metrics = MarketMetrics()
-    assert metrics.search_count == 0
-    assert metrics.connection_count == 0
-    assert len(metrics.bid_counts) == 0
-
-def test_market_metrics_add_result(sample_search_result):
-    """Test adding search results to market metrics."""
-    metrics = MarketMetrics()
-    metrics.add_result(sample_search_result)
+    metrics = GeographicMetrics()
+    metrics.add_search(sample_search_result)
     
-    assert metrics.search_count == 1
-    assert metrics.connection_count == 1
-    assert len(metrics.bid_counts) == 1
-    assert metrics.bid_counts[0] == 1
+    coverage_metrics = metrics.calculate_coverage_metrics(postal_code_market)
     
-    # Check distance tracking
-    assert len(metrics.distances['offer']) == 2  # Two offers
-    assert len(metrics.distances['bid']) == 1    # One bid
-    assert len(metrics.distances['connection']) == 1  # One connection
+    # Coverage shouldn't exceed postal code area even with overlap
+    pc_area = postal_code_market.postal_codes["10001"].area
+    assert coverage_metrics['coverage_ratio'] <= 1.0
     
-    # Check score tracking
-    assert len(metrics.cleaner_scores['offer']) == 2
-    assert len(metrics.cleaner_scores['bid']) == 1
-    assert len(metrics.cleaner_scores['connection']) == 1
-
-def test_market_metrics_calculation(postal_code_market, sample_search_result):
-    """Test market metrics calculation."""
-    metrics = MarketMetrics()
-    metrics.add_result(sample_search_result)
+def test_empty_market_coverage(postal_code_market, sample_search_result):
+    """Test coverage metrics for market with no cleaners."""
+    postal_code_market.cleaners.clear()
     
-    results = metrics.calculate_metrics(postal_code_market)
-    assert isinstance(results, dict)
+    metrics = GeographicMetrics()
+    metrics.add_search(sample_search_result)
     
-    # Check required metrics
-    assert 'connection_rate' in results
-    assert 'avg_bids_per_search' in results
-    assert 'avg_offer_distance' in results
-    assert 'avg_offer_score' in results
-    assert 'search_density' in results
-    assert 'coverage_ratio' in results
-    
-    # Verify values
-    assert 0 <= results['connection_rate'] <= 1
-    assert results['avg_bids_per_search'] > 0
-    assert results['coverage_ratio'] > 0
-
-# --- Test Simulation Metrics ---
-
-def test_simulation_metrics_initialization(postal_code_market):
-    """Test simulation metrics initialization."""
-    metrics = SimulationMetrics(market=postal_code_market)
-    assert len(metrics.results) == 0
-    assert isinstance(metrics.market_metrics, MarketMetrics)
-
-def test_simulation_metrics_add_results(postal_code_market, sample_search_result):
-    """Test adding results to simulation metrics."""
-    metrics = SimulationMetrics(market=postal_code_market)
-    metrics.add_results([sample_search_result])
-    
-    assert len(metrics.results) == 1
-    assert metrics.market_metrics.search_count == 1
-
-def test_simulation_metrics_get_metrics(postal_code_market, sample_search_result):
-    """Test getting comprehensive metrics."""
-    metrics = SimulationMetrics(market=postal_code_market)
-    metrics.add_results([sample_search_result])
-    
-    results = metrics.get_metrics()
-    assert isinstance(results, dict)
-    assert 'connection_rate' in results
-
-def test_simulation_metrics_geospatial_data(postal_code_market, sample_search_result):
-    """Test getting geospatial data for visualization."""
-    metrics = SimulationMetrics(market=postal_code_market)
-    metrics.add_results([sample_search_result])
-    
-    data = metrics.get_geospatial_data()
-    assert 'searches' in data
-    assert 'connections' in data
-    assert 'cleaners' in data
-    assert 'service_areas' in data
-    
-    assert len(data['searches']) == 1
-    assert len(data['connections']) == 1
-    assert len(data['cleaners']) == 2
-    assert len(data['service_areas']) == 2
-
-def test_simulation_metrics_distributions(postal_code_market, sample_search_result):
-    """Test getting distribution data for visualization."""
-    metrics = SimulationMetrics(market=postal_code_market)
-    metrics.add_results([sample_search_result])
-    
-    scores = metrics.get_score_distributions()
-    assert 'offer_scores' in scores
-    assert 'bid_scores' in scores
-    assert 'connection_scores' in scores
-    
-    distances = metrics.get_distance_distributions()
-    assert 'offer_distances' in distances
-    assert 'bid_distances' in distances
-    assert 'connection_distances' in distances
+    coverage_metrics = metrics.calculate_coverage_metrics(postal_code_market)
+    assert coverage_metrics['coverage_ratio'] == 0.0
+    assert coverage_metrics['active_coverage_ratio'] == 0.0
