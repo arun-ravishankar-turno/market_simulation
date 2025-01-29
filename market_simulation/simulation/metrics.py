@@ -196,6 +196,7 @@ class MarketMetrics:
                 'avg_bids_per_search': np.mean(self.bid_counts),
                 'med_bids_per_search': np.median(self.bid_counts),
                 'pct_searches_with_bids': np.mean([n > 0 for n in self.bid_counts])
+                # Maybe add pct searches with n bids here, with n being 5, 10
             })
         
         # Distance metrics

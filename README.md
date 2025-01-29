@@ -171,18 +171,31 @@ pytest tests/test_models/test_market.py
 pytest --cov=market_simulation
 ```
 
-## Contributing
+## Improvements:
+Here are some of the improvements that need to be made.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### Bugs
+- get_cleaners_in_range currently obtains the number of cleaners in the range of a market - in reality, for a given point, we want to find the number of cleaners whose service radius allows them to be within the range of this point.
 
-## License
+### Documentation
+- Show sample outputs in the documentation.
+- Once Offer to Bid and Bid to Connection models are ready, show adequate documentation for the same.
 
-[Your License Here]
+### Code Structure/Usability
+- Dockerize everything for reproducibility.
+- Currently input is for a simulation in a single market - need to incorporate multiple ways of running the simulation - single market (postal_code/location) with inputs of number of searches,  a list of markets, 
 
-## Contact
+### Parallelization
+- Allow for parallel markets to run
 
-[Your Contact Information]
+### Testing
+
+### Simulation
+- Implement Offer to Bid model
+- Appropriately use capacity and distance decay factors
+
+### Outputs/Metrics
+- 
+
+### Visualization
+- Add details to each search point on each plot indicating their stats, ie. how many offer that search had, how many bids they received, number of connections, avg distance to offer/bid/connection, etc.
