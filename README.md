@@ -191,8 +191,9 @@ Here are some of the improvements that need to be made.
 ### Testing
 
 ### Simulation
-- Implement Offer to Bid model
-- Appropriately use capacity and distance decay factors
+- Add features to cleaners like days since last bid, days since last connection, days since last assignment, Offer to Bid rate for last 10 offers, days since last connection died, something indicating how competitive their local market is, their recent past bid to connection success rate, etc. that will feature in the offer to bid probability. 
+- Implement Offer to Bid model.
+- Appropriately use capacity and distance decay factors.
 
 ### Outputs/Metrics
 - 
